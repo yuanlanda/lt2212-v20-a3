@@ -63,9 +63,9 @@ class AuthorPredictNN(nn.Module):
           x2 = []
           
           if random.randrange(2) == 0:
-            rand2 = random.randrange(len(others_docs_indexes))
-            x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[rand2]]))
-            others_docs_indexes.remove(others_docs_indexes[rand2])
+            random_other_author_doc = random.randrange(len(others_docs_indexes))
+            x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[random_other_author_doc]]))
+            others_docs_indexes.remove(others_docs_indexes[random_other_author_doc])
             train_Y = 0
           else:
             # making sure x1 and x2 are not the same docs
@@ -87,7 +87,6 @@ class AuthorPredictNN(nn.Module):
   def test(self, test_X):
     test_Y = []
     pred = []
-    counter = 0
     
     with torch.no_grad():
       
@@ -99,9 +98,9 @@ class AuthorPredictNN(nn.Module):
             x1 = torch.FloatTensor(np.array(test_X.iloc[doc]))
             x2 = []
             if random.randrange(2) == 0:
-              rand2 = random.randrange(len(others_docs_indexes))
-              x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[rand2]]))
-              others_docs_indexes.remove(others_docs_indexes[rand2])
+              random_other_author_doc = random.randrange(len(others_docs_indexes))
+              x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[random_other_author_doc]]))
+              others_docs_indexes.remove(others_docs_indexes[random_other_author_doc])
               test_Y.append(0)
             else:
               # making sure x1 and x2 are not the same docs
@@ -110,6 +109,7 @@ class AuthorPredictNN(nn.Module):
               else:
                 continue
               test_Y.append(1)
+            
             x = torch.cat((x1, x2))
             outputs = self.forward(x)
             prediction = 1 if outputs > 0.5 else 0
