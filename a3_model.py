@@ -53,29 +53,27 @@ class AuthorPredictNN(nn.Module):
 
     for epoch in range(epochs):
       for author_index,author_docs_indexes in train_dict.items():
-        total_loss = 0
         current_author_docs_count = len(author_docs_indexes)
         others_docs_indexes = other_authors_docs_list(author_docs_indexes, len(train_docs_indexes))
         
         for index, doc in enumerate(author_docs_indexes):
-          total_loss = 0
-          x1 = torch.FloatTensor(np.array(train_X.iloc[doc]))
-          x2 = []
+          current_author_doc = torch.FloatTensor(np.array(train_X.iloc[doc]))
+          random_author_doc = []
           
           if random.randrange(2) == 0:
             random_other_author_doc = random.randrange(len(others_docs_indexes))
-            x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[random_other_author_doc]]))
+            random_author_doc = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[random_other_author_doc]]))
             others_docs_indexes.remove(others_docs_indexes[random_other_author_doc])
             train_Y = 0
           else:
-            # making sure x1 and x2 are not the same docs
+            # making sure current_author_doc and random_author_doc are not the same docs
             if index < current_author_docs_count - 1:
-              x2 = torch.FloatTensor(np.array(train_X.iloc[author_docs_indexes[index + 1]]))
+              random_author_doc = torch.FloatTensor(np.array(train_X.iloc[author_docs_indexes[index + 1]]))
             else:
               continue    
             train_Y = 1
           
-          x = torch.cat((x1, x2))
+          x = torch.cat((current_author_doc, random_author_doc))
           output = self.forward(x)
           loss = criterion(output, torch.FloatTensor([train_Y]))
 
@@ -95,22 +93,22 @@ class AuthorPredictNN(nn.Module):
         others_docs_indexes = other_authors_docs_list(author_docs_indexes, len(test_docs_indexes))
         
         for index, doc in enumerate(author_docs_indexes):
-            x1 = torch.FloatTensor(np.array(test_X.iloc[doc]))
-            x2 = []
+            current_author_doc = torch.FloatTensor(np.array(test_X.iloc[doc]))
+            random_author_doc = []
             if random.randrange(2) == 0:
               random_other_author_doc = random.randrange(len(others_docs_indexes))
-              x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[random_other_author_doc]]))
+              random_author_doc = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[random_other_author_doc]]))
               others_docs_indexes.remove(others_docs_indexes[random_other_author_doc])
               test_Y.append(0)
             else:
-              # making sure x1 and x2 are not the same docs
+              # making sure current_author_doc and random_author_doc are not the same docs
               if index < current_author_docs_count - 1:
-                x2 = torch.FloatTensor(np.array(train_X.iloc[author_docs_indexes[index + 1]]))
+                random_author_doc = torch.FloatTensor(np.array(train_X.iloc[author_docs_indexes[index + 1]]))
               else:
                 continue
               test_Y.append(1)
             
-            x = torch.cat((x1, x2))
+            x = torch.cat((current_author_doc, random_author_doc))
             outputs = self.forward(x)
             prediction = 1 if outputs > 0.5 else 0
             pred.append(prediction)
