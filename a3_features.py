@@ -8,6 +8,7 @@ import pandas as pd
 from sklearn.decomposition import TruncatedSVD
 from sklearn.model_selection import train_test_split
 import csv
+from sklearn import preprocessing
     
 
 if __name__ == "__main__":
@@ -68,6 +69,12 @@ if __name__ == "__main__":
     svd = TruncatedSVD(n_components=args.dims)
     X = svd.fit_transform(features)
     y = author_name_list
+
+    # LabelEncoder author's name, transforming the author's name into integer index.
+    le = preprocessing.LabelEncoder()
+    le.fit(y)
+    y = le.transform(y)
+
     test = args.testsize/100
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test)
 
