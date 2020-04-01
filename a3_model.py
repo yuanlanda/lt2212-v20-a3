@@ -6,20 +6,163 @@ import pandas as pd
 import torch
 from torch import nn
 from torch import optim
-# Whatever other imports you need
+import random
+from torch.autograd import Variable
+from sklearn.metrics import classification_report
 
-# You can implement classes and helper functions here too.
+
+ACTIVATION_FUNC = {"relu": nn.ReLU(), "tanh": nn.Tanh()}
+
+
+class AuthorPredictNN(nn.Module):
+  def __init__(self, input_size, hidden_size=0, activation=None):
+    super(AuthorPredictNN, self).__init__()
+
+    self.input_size = input_size
+    self.hidden_size = hidden_size
+    self.activation = activation
+    
+    if self.hidden_size > 0:
+      self.fc1 = nn.Linear(self.input_size * 2, self.hidden_size)
+      self.fc2 = nn.Linear(self.hidden_size, 1) 
+    else:
+      self.fc1 = nn.Linear(self.input_size * 2, 1)
+    if self.activation:
+      self.nonlinearity = ACTIVATION_FUNC[self.activation]
+    
+    self.sigmoid = nn.Sigmoid()
+
+
+  def forward(self, X):
+    X = self.fc1(X)
+    
+    if self.activation and self.hidden_size > 0:
+      X = self.nonlinearity(X)
+    if self.hidden_size > 0:
+      X = self.fc2(X)
+    
+    X = self.sigmoid(X)   
+    return X
+
+
+  def train(self, train_X, epochs=20):
+    input_size = len(train_X.columns)
+    optimizer = torch.optim.Adam(self.parameters(), lr = 0.01)
+    criterion = nn.BCELoss()
+    train_Y = 0
+
+    for epoch in range(epochs):
+      for author_index,author_docs_indexes in train_dict.items():
+        total_loss = 0
+        current_author_docs_count = len(author_docs_indexes)
+        others_docs_indexes = other_authors_docs_list(author_docs_indexes, len(train_docs_indexes))
+        
+        for index, doc in enumerate(author_docs_indexes):
+          total_loss = 0
+          x1 = torch.FloatTensor(np.array(train_X.iloc[doc]))
+          x2 = []
+          
+          if random.randrange(2) == 0:
+            rand2 = random.randrange(len(others_docs_indexes))
+            x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[rand2]]))
+            others_docs_indexes.remove(others_docs_indexes[rand2])
+            train_Y = 0
+          else:
+            # making sure x1 and x2 are not the same docs
+            if index < current_author_docs_count - 1:
+              x2 = torch.FloatTensor(np.array(train_X.iloc[author_docs_indexes[index + 1]]))
+            else:
+              continue    
+            train_Y = 1
+          
+          x = torch.cat((x1, x2))
+          output = self.forward(x)
+          loss = criterion(output, torch.FloatTensor([train_Y]))
+
+          optimizer.zero_grad()
+          loss.backward()
+          optimizer.step()
+
+
+  def test(self, test_X):
+    test_Y = []
+    pred = []
+    counter = 0
+    
+    with torch.no_grad():
+      
+      for author_index,author_docs_indexes in test_dict.items():  
+        current_author_docs_count = len(author_docs_indexes)
+        others_docs_indexes = other_authors_docs_list(author_docs_indexes, len(test_docs_indexes))
+        
+        for index, doc in enumerate(author_docs_indexes):
+            x1 = torch.FloatTensor(np.array(test_X.iloc[doc]))
+            x2 = []
+            if random.randrange(2) == 0:
+              rand2 = random.randrange(len(others_docs_indexes))
+              x2 = torch.FloatTensor(np.array(train_X.iloc[others_docs_indexes[rand2]]))
+              others_docs_indexes.remove(others_docs_indexes[rand2])
+              test_Y.append(0)
+            else:
+              # making sure x1 and x2 are not the same docs
+              if index < current_author_docs_count - 1:
+                x2 = torch.FloatTensor(np.array(train_X.iloc[author_docs_indexes[index + 1]]))
+              else:
+                continue
+              test_Y.append(1)
+            x = torch.cat((x1, x2))
+            outputs = self.forward(x)
+            prediction = 1 if outputs > 0.5 else 0
+            pred.append(prediction)
+
+    print(classification_report(test_Y, pred))
+
+
+def create_author_docs_indexes_list(labels):
+  labels = labels.to_numpy()
+  unique_author_index = np.unique(labels)
+
+  dict = {}
+  for i in unique_author_index:
+    uni = np.where(labels == i)
+    dict[i] = uni[0]
+
+  return labels, dict
+
+# return an index list excluding the author's own files 
+def other_authors_docs_list(exclude, upperbound):
+  other_docs_list = [] 
+  for i in list(range(upperbound)):
+    if i not in exclude:
+      other_docs_list.append(i)
+  random.shuffle(other_docs_list)
+  
+  return other_docs_list
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train and test a model on features.")
     parser.add_argument("featurefile", type=str, help="The file containing the table of instances and features.")
-    # Add options here for part 3 -- hidden layer and nonlinearity,
-    # and any other options you may think you want/need.  Document
-    # everything.
+    parser.add_argument("--hiddensize", type=int, dest="hiddensize", help = "The number of hidden layers.")
+    parser.add_argument("--activation", type=str, dest="activation", help="Activation function: relu, tanh")
     
     args = parser.parse_args()
 
     print("Reading {}...".format(args.featurefile))
-
-    # implement everything you need here
     
+    # read csv file, filter the first index column
+    df = pd.read_csv(args.featurefile)
+    train_X = df.loc[df['data_type'] == "train"].iloc[:, 1:]
+    test_X = df.loc[df['data_type'] == "test"].iloc[:, 1:]
+
+    # separate, generate the files list belongs to each author
+    # keys: the indexes of authors, values: a list of all file indexes of the author
+    train_docs_indexes, train_dict = create_author_docs_indexes_list(train_X['author'])
+    test_docs_indexes, test_dict = create_author_docs_indexes_list(test_X['author'])
+    
+    train_X = train_X.drop(['data_type','author'], axis = 1)
+    test_X = test_X.drop(['data_type','author'], axis = 1)
+
+    model = AuthorPredictNN(train_X.shape[1], args.hiddensize)
+    model.train(train_X)
+    model.test(test_X)
