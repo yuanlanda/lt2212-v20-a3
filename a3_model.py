@@ -53,7 +53,7 @@ class AuthorPredictNN(nn.Module):
     optimizer = torch.optim.Adam(self.parameters(), lr = 0.01)
     criterion = nn.BCELoss()
     train_Y = []
-    X1 = []
+    output_list = []
 
     for epoch in range(epochs):
       print("epoch:", epoch)
@@ -80,14 +80,14 @@ class AuthorPredictNN(nn.Module):
             
           x = torch.cat((current_author_doc, random_author_doc))
           optimizer.zero_grad()
-          outputs = self.forward(x)
-          X1.append(outputs)
+          output = self.forward(x)
+          output_list.append(output)
 
-        X2 = torch.cat(X1, dim = 0)    
-        ro = [torch.FloatTensor([pre]) for pre in train_Y]
-        ro = torch.FloatTensor(ro)
-        X1 = [torch.FloatTensor([pre]) for pre in train_Y]
-        loss = criterion(X2, ro)
+        outputs = torch.cat(output_list, dim = 0)    
+        data_y = [torch.FloatTensor([pre]) for pre in train_Y]
+        data_y = torch.FloatTensor(data_y)
+        output_list = [torch.FloatTensor([pre]) for pre in train_Y]
+        loss = criterion(outputs, data_y)
         loss.backward()
         optimizer.step()
 
