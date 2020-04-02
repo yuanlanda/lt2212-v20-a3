@@ -203,11 +203,10 @@ if __name__ == "__main__":
 
       plt.xlabel('Recall')
       plt.ylabel('Precision')
-      plt.title('Precision-Recall curve')
 
       plt.legend(loc="upper right")
       plt.show()
-      plt.savefig(args.outputfile, format='png')
+      plt.savefig(args.plotfile, format='png')
 
     else:
       model = AuthorPredictNN(train_X.shape[1], args.hiddensize)
