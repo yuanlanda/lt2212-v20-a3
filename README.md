@@ -40,13 +40,13 @@ Run part 2 and 3, try:
 | 100          |     ReLU      |   0.4948 |    0.5284 | 0.4948 |   0.4668 |
 | 100          |     Tanh      |   0.4854 |    0.4805 | 0.4854 |   0.4714 |
 
-I can not get very clear patten according to my testing result, all the scores are relatively similar. From my perspective, my model performed the best without any activation function and hidden layer. Both ReLU() and Tanh() preformed best with 50 hidden layers.
+I can not get very clear patten according to my testing result, all the scores are relatively similar. From my perspective, my model performed the best without any activation function and hidden layer. Both `ReLU `and `Tanh` preformed best with 50 hidden layers.
 
 
 
 ## Part Bonus
 
-Run part 2 and 3, try:
+Run bonus, try:
 
 ​	`python3 a3_model.py output.csv --plotfile test.png`
 
